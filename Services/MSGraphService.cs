@@ -24,11 +24,16 @@ SOFTWARE.
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
+using Microsoft.Graph.Auth;
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using WebApp_OpenIDConnect_DotNet.Models;
+using System.Linq;
+
 
 namespace WebApp_OpenIDConnect_DotNet.Services
 {
@@ -112,5 +117,82 @@ namespace WebApp_OpenIDConnect_DotNet.Services
                 Debug.WriteLine($"Could not create a graph client {ex}");
             }
         }
+        public GraphServiceClient CreateAppPermission(string tenantId)
+        {
+            IConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplicationBuilder
+                .Create(configuration.GetValue<string>("AzureAd:ClientId"))
+                .WithTenantId(tenantId)
+                .WithClientSecret(configuration.GetValue<string>("AzureAd:ClientSecret"))
+                .WithAuthority(AadAuthorityAudience.AzureAdMyOrg)
+                .Build();
+            ClientCredentialProvider authenticationProvider = new ClientCredentialProvider(confidentialClientApplication);
+            var scopes = new[] { "https://graph.microsoft.com/.default" };
+            GraphServiceClient graphClientApp = new GraphServiceClient(authenticationProvider);
+
+            graphServiceClient = graphClientApp;
+            return graphClientApp;
+        }
+        public async Task<List<Eventos>> GetUsersMeetingsAsync(string accessToken, string tenantId, InfoUser infoUsuario)
+        {
+            List<Eventos> eventos = new List<Eventos>();
+            IEnumerable<Event> eventsGraph = null;
+
+            try
+            {
+                if (infoUsuario.IsDelegated)
+                {
+                    PrepareAuthenticatedClient(accessToken);
+                    eventsGraph = await graphServiceClient.Me.Calendar.Events.Request().GetAsync();
+
+                }
+                else
+                {
+                    CreateAppPermission(tenantId);
+
+                    var userQuery = await graphServiceClient.Users.Request()
+                    .Filter($"userPrincipalName eq '{infoUsuario.NombreUsuario}' or startswith(displayName,'{infoUsuario.NombreUsuario}')")
+                    .Select("id, userPrincipalName, displayName")
+                    .GetAsync();
+
+                    if (userQuery.Count == 0)
+                    {
+                        return null;
+                    }
+
+                    eventsGraph = await graphServiceClient.Users[userQuery.FirstOrDefault().Id].Calendar.Events.Request().GetAsync();
+                }
+
+                if (eventsGraph?.Count() > 0)
+                {
+                    foreach (var eventoGraph in eventsGraph)
+                    {
+                        eventos.Add(new Eventos()
+                        {
+                            Id = eventoGraph.Id,
+                            Titulo = eventoGraph.Subject,
+                            FechaDesde = DateTime.Parse(eventoGraph.Start.DateTime),
+                            FechaHasta = DateTime.Parse(eventoGraph.End.DateTime),
+
+                        });
+                    }
+                }
+
+                //foreach (var c in calendars)
+                //{
+                //    c.Events.requ
+                //}
+
+                //return events;
+
+            }
+            catch (ServiceException e)
+            {
+                Debug.WriteLine("We could not retrieve the user's list: " + $"{e}");
+                return null;
+            }
+
+            return eventos;
+        }
+
     }
 }

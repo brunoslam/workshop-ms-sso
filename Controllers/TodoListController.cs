@@ -83,7 +83,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         }
 
         [HttpGet]
-        [AuthorizeForScopes(Scopes = new string[] { GraphScope.UserReadAll })]
+        [AuthorizeForScopes(Scopes = new string[] { GraphScope.UserReadAll, GraphScope.CalendarsRead })]
         public async Task<IActionResult> Edit(int id)
         {
             TodoItem todoItem = await _todoItemService.Get(id, User);

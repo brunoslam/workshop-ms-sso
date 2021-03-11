@@ -25,11 +25,13 @@ SOFTWARE.
 using Microsoft.Graph;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using WebApp_OpenIDConnect_DotNet.Models;
 
 namespace WebApp_OpenIDConnect_DotNet.Services
 {
     public interface IMSGraphService
     {
         Task<IEnumerable<User>> GetUsersAsync(string accessToken);
+        Task<List<Eventos>> GetUsersMeetingsAsync(string accessToken, string tenantId, InfoUser infoUsuario);
     }
 }

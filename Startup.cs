@@ -38,8 +38,8 @@ namespace WebApp_OpenIDConnect_DotNet
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
-                options.CheckConsentNeeded = context => true;
-                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
+                //options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.None;
                 // Handling SameSite cookie according to https://docs.microsoft.com/en-us/aspnet/core/security/samesite?view=aspnetcore-3.1
                 options.HandleSameSiteCookieCompatibility();
             });
@@ -90,7 +90,7 @@ namespace WebApp_OpenIDConnect_DotNet
                 {
                     Configuration.Bind("AzureAd", options);
                 },
-                new string[] { GraphScope.UserReadAll })
+                new string[] { GraphScope.UserReadAll, GraphScope.CalendarsRead, GraphScope.OnlineMeetingsRead })
                     .AddInMemoryTokenCaches();
 
             services.AddControllersWithViews(options =>
